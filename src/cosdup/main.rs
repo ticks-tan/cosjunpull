@@ -84,6 +84,7 @@ impl Dup {
             .arg("-c")
             .arg(&cmd)
             .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn() {
                 Ok(mut child) => {
                     match child.wait() {
@@ -139,11 +140,11 @@ impl Dup {
     }
 
     fn upload(self: &Self, path: PathBuf) -> bool {
-        info!("start download files in dir: {}", path.to_str().unwrap());
         // use https://github.com/aoaostar/alidrive-uploader
         let cmd = format!("alidrive -c ./alidrive.yaml {} CosJun/zips", 
             path.to_str().unwrap()
         );
+        info!("upload file use: {}", &cmd);
         // info!("run command: {}", &cmd);
         match Command::new("/bin/sh")
             .arg("-c")
@@ -170,8 +171,15 @@ fn main() {
     logger_builder.filter_level(log::LevelFilter::Info);
     logger_builder.init();
 
-    // 指定压缩目录和下载最大目录数量，太大占有磁盘空间
-    let mut dup = Dup::new(PathBuf::from("./target/zips"), 40);
-    // 指定下载目录
-    dup.start_download("./target/out/life");
+    let args: Vec<String> = std::env::args().collect();
+
+    // cosdup <src> <out>
+    if args.len() == 3 {
+        // 指定压缩目录和下载最大目录数量，太大占有磁盘空间
+        let mut dup = Dup::new(PathBuf::from(args.get(2).unwrap().as_str()), 40);
+        // 指定下载目录
+        dup.start_download(args.get(1).unwrap().as_str());
+    }else {
+        println!("cosdup <src> <target>");
+    }
 }
