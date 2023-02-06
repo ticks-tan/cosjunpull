@@ -276,6 +276,7 @@ impl Cos {
         }
     }
 
+    // 登陆获取session
     #[allow(dead_code)]
     pub async fn login(self: &mut Self) ->bool {
         self.http_request.login("<username>", "<password>").await

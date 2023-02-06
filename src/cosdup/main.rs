@@ -1,7 +1,7 @@
 use walkdir::WalkDir;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use log::{error, info};
+use log::{error, info, warn};
 
 fn create_dirs(dir: &PathBuf) ->bool {
     if dir.exists() {
@@ -44,6 +44,7 @@ impl Dup {
                 continue;
             }
             let entry = entry.into_path();
+            info!("find info.txt in : {}", entry.to_str().unwrap());
             // 查找一级父目录
             if let Some(p1) = entry.parent() {
                 if p1.exists() && p1.is_dir() {
@@ -76,7 +77,7 @@ impl Dup {
     }
 
     fn download(path: PathBuf) -> bool {
-        info!("download in dir: {}", path.to_str().unwrap());
+        info!("start download files in dir: {}", path.to_str().unwrap());
         let cmd = format!("cd \"{}\" && wget -nc -c -t 5 -T 120 -i \"info.txt\"", path.to_str().unwrap());
         // info!("run command: {}", &cmd);
         match Command::new("/bin/sh")
@@ -99,6 +100,7 @@ impl Dup {
     }
 
     fn zip_downloaded(self: &mut Self, filename: &str) -> bool {
+        info!("start compress files in dir: {}", self.zip_path.join(filename).to_str().unwrap());
         let mut cmd = format!("tar zcf \"{}\"", self.zip_path.join(filename).to_str().unwrap());
         for dir in &self.downloaded_vec {
             cmd += &format!(" \"{}\"", dir.to_str().unwrap());
@@ -123,11 +125,13 @@ impl Dup {
                     }
             };
         }
-        
         if result {
+            info!("compress files success, rm src files");
             for it in &self.downloaded_vec {
                 let _ = std::fs::remove_dir_all(it);
             }
+        }else {
+            warn!("compress file error!");
         }
         self.downloaded_vec.clear();
         result
@@ -140,6 +144,8 @@ fn main() {
     logger_builder.filter_level(log::LevelFilter::Info);
     logger_builder.init();
 
-    let mut dup = Dup::new(PathBuf::from("./zips"), 40);
-    dup.start_download("./test/life");
+    // 指定压缩目录和下载最大目录数量，太大占有磁盘空间
+    let mut dup = Dup::new(PathBuf::from("./target/zips"), 40);
+    // 指定下载目录
+    dup.start_download("./target/out/life");
 }

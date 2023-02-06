@@ -5,11 +5,12 @@ mod session;
 
 async fn test()
 {
-    let mut cos = api::Cos::new(PathBuf::from("./test")).unwrap();
+    // 爬取文件输出目录
+    let mut cos = api::Cos::new(PathBuf::from("./target/out")).unwrap();
     if cos.login().await {
         cos.produce_by_page("life", 1).await;
     }else {
-        error!("login error!");
+        error!("login error! More infomation: https://www.cosjun.cn");
     }
 }
 
