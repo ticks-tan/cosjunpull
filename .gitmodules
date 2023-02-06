@@ -1,0 +1,3 @@
+[submodule "alidrive-uploader"]
+	path = alidrive-uploader
+	url = https://github.com/aoaostar/alidrive-uploader
