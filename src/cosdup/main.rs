@@ -58,7 +58,7 @@ impl Dup {
                                 let filename = format!("cos_{}_{}-{}.tar.gz", 
                                     PathBuf::from(root_dir).file_name().unwrap().to_str().unwrap(),
                                     start_index, end_index);
-                                if self.zip_downloaded(&filename) {
+                                if self.compress_downloaded(&filename) {
                                     end_index += 1;
                                     start_index = end_index;
                                 }
@@ -73,7 +73,7 @@ impl Dup {
             PathBuf::from(root_dir).file_name().unwrap().to_str().unwrap(),
             start_index, end_index
         );
-        self.zip_downloaded(&filename);
+        self.compress_downloaded(&filename);
     }
 
     fn download(path: PathBuf) -> bool {
@@ -84,7 +84,6 @@ impl Dup {
             .arg("-c")
             .arg(&cmd)
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .spawn() {
                 Ok(mut child) => {
                     match child.wait() {
@@ -99,7 +98,7 @@ impl Dup {
             }
     }
 
-    fn zip_downloaded(self: &mut Self, filename: &str) -> bool {
+    fn compress_downloaded(self: &mut Self, filename: &str) -> bool {
         info!("start compress files in dir: {}", self.zip_path.join(filename).to_str().unwrap());
         let mut cmd = format!("tar zcf \"{}\"", self.zip_path.join(filename).to_str().unwrap());
         for dir in &self.downloaded_vec {
@@ -111,7 +110,6 @@ impl Dup {
                 .arg("-c")
                 .arg(&cmd)
                 .stdout(Stdio::null())
-                .stderr(Stdio::null())
                 .spawn() {
                     Ok(mut child) => {
                         match child.wait() {
@@ -130,11 +128,39 @@ impl Dup {
             for it in &self.downloaded_vec {
                 let _ = std::fs::remove_dir_all(it);
             }
+            if self.upload(self.zip_path.join(filename)) {
+                info!("upload file: {} success!", self.zip_path.join(filename).to_str().unwrap());
+            }
         }else {
             warn!("compress file error!");
         }
         self.downloaded_vec.clear();
         result
+    }
+
+    fn upload(self: &Self, path: PathBuf) -> bool {
+        info!("start download files in dir: {}", path.to_str().unwrap());
+        // use https://github.com/aoaostar/alidrive-uploader
+        let cmd = format!("alidrive -c ./alidrive.yaml {} CosJun/zips", 
+            path.to_str().unwrap()
+        );
+        // info!("run command: {}", &cmd);
+        match Command::new("/bin/sh")
+            .arg("-c")
+            .arg(&cmd)
+            .stdout(Stdio::null())
+            .spawn() {
+                Ok(mut child) => {
+                    match child.wait() {
+                        Ok(status) => status.success(),
+                        Err(_) => false
+                    }
+                },
+                Err(e) => {
+                    error!("run command {} error: {}", &cmd, e.to_string());
+                    false
+                }
+            }
     }
 }
 
